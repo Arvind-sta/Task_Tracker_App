@@ -1,0 +1,72 @@
+{% extends "tasks/base.html" %}
+{% block content %}
+<h1>Your Tasks</h1>
+
+<section id="add-task">
+  <h3>Add Task</h3>
+  <form id="addTaskForm" method="post" action="{% url 'add_task' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add</button>
+  </form>
+</section>
+
+<section id="tasks-list">
+  <ul>
+    {% for task in tasks %}
+      <li data-id="{{ task.id }}" class="{% if task.is_completed %}done{% endif %}">
+        <strong>{{ task.title }}</strong>
+        <p>{{ task.description }}</p>
+        <small>Created: {{ task.created_at|date:"Y-m-d H:i" }}</small>
+        <div class="actions">
+          {% if not task.is_completed %}
+            <a href="{% url 'mark_complete' task.id %}">Mark Complete</a>
+          {% endif %}
+          <button class="toggle-complete" data-id="{{ task.id }}">
+            {% if task.is_completed %}Unmark{% else %}Mark Complete{% endif %}
+          </button>
+        </div>
+      </li>
+    {% empty %}
+      <li>No tasks yet. Add one!</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+$(function(){
+  $(".toggle-complete").on("click", function(){
+    const pk = $(this).data("id");
+    const btn = $(this);
+    $.ajax({
+      url: "{% url 'toggle_complete_ajax' 0 %}".replace("0", pk),
+      type: "POST",
+      headers: {'X-CSRFToken': csrftoken},
+      success: function(data){
+        if(data.success){
+          const li = btn.closest("li");
+          li.toggleClass("done", data.is_completed);
+          btn.text(data.is_completed ? "Unmark" : "Mark Complete");
+        }
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
